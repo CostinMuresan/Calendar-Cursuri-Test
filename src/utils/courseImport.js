@@ -46,17 +46,20 @@ export function matchHeaderToField(header) {
   return null
 }
 
-// Excel poate reprezenta o data in 3 feluri: obiect Date (daca celula era
-// formatata ca data si am citit cu {cellDates:true}), numar serial (zile de
-// la 30 dec 1899 - conventia Excel, daca celula n-a fost recunoscuta ca
-// data), sau text simplu (DD/LL/AAAA, scris manual). Tratam toate trei.
+// Excel poate reprezenta o data in 3 feluri: obiect Date (rar - doar daca
+// valoarea vine deja convertita de undeva, altundeva decat citirea noastra
+// de fisier), numar serial (cazul NORMAL, de vreme ce citim fisierul FARA
+// cellDates:true - vezi AdminPanel.jsx), sau text simplu (DD/LL/AAAA, scris
+// manual). Tratam toate trei, dar calea principala e cea numerica.
 //
-// IMPORTANT: xlsx construieste obiectul Date (ramura 1) ANCORAT LA FUSUL
-// ORAR LOCAL al calculatorului, nu UTC - deci toate ramurile de mai jos
-// construiesc local, si dateToISO() citeste tot local, consecvent. (O
-// versiune anterioara presupunea gresit ca xlsx ancoreaza UTC, ceea ce
-// provoca exact alunecarea datei cu o zi in urma, pe orice fus orar cu
-// offset pozitiv fata de UTC, ca Romania.)
+// De ce nu folosim cellDates:true la citire: desi documentatia oficiala a
+// bibliotecii xlsx spune ca obiectul Date rezultat ar trebui interpretat
+// corect cu metode LOCALE, in practica (testat direct, pe fisiere reale) nu
+// s-a comportat asa - data aluneca sistematic cu o zi in urma, indiferent
+// ce metoda de citire (UTC sau locala) am incercat pe acel obiect Date.
+// Solutia robusta: ocolim complet obiectele Date ale bibliotecii si lucram
+// cu numarul serial brut, unde nu exista nicio ambiguitate posibila de fus
+// orar - un numar e un numar.
 export function parseExcelDate(value) {
   if (value instanceof Date && !isNaN(value)) return value
   if (typeof value === 'number') {
@@ -88,9 +91,9 @@ export function dateToISO(date) {
   return `${y}-${m}-${d}`
 }
 
-// ora poate fi obiect Date (cu ora/minut relevante), fractiune de zi (Excel
-// stocheaza orele tot ca numar, ex: 0.375 = 09:00), sau text "HH:MM" - la
-// fel ca la data, xlsx da obiectul Date ancorat local, deci citim local
+// ora poate fi numar (fractiune de zi - Excel stocheaza orele asa, ex:
+// 0.375 = 09:00 - calea NORMALA, de vreme ce citim fara cellDates:true),
+// text "HH:MM", sau (rar) obiect Date
 export function parseExcelTime(value) {
   if (value instanceof Date && !isNaN(value)) {
     const h = String(value.getHours()).padStart(2, '0')

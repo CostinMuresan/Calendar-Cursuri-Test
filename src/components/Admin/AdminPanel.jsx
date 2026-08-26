@@ -561,7 +561,15 @@ function ImportCoursesPanel() {
 
     try {
       const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
+      // FARA cellDates:true - citim celulele de tip data ca NUMERE SERIALE
+      // brute (cum le stocheaza Excel intern), nu ca obiecte Date. E mai
+      // sigur: un numar e un numar, fara nicio ambiguitate de fus orar.
+      // Obiectele Date construite de xlsx (cu cellDates:true) s-au dovedit,
+      // in practica, sa NU se comporte cum descrie documentatia oficiala pe
+      // acest fisier - alunecau cu o zi in urma, indiferent de reparatiile
+      // incercate pe partea de citire (UTC sau locala). Ocolim complet
+      // problema, lucrand doar cu numere.
+      const workbook = XLSX.read(buffer, { type: 'array' })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' })
 
