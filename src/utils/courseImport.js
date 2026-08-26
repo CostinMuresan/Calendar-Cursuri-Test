@@ -50,8 +50,19 @@ export function matchHeaderToField(header) {
 // formatata ca data si am citit cu {cellDates:true}), numar serial (zile de
 // la 30 dec 1899 - conventia Excel, daca celula n-a fost recunoscuta ca
 // data), sau text simplu (DD/LL/AAAA, scris manual). Tratam toate trei.
+//
+// IMPORTANT: toate cele trei ramuri construiesc data ANCORATA UTC (miezul
+// noptii UTC pentru ziua respectiva), niciodata ancorata la fusul orar
+// local - ca sa fie consecventa cu dateToISO() de mai jos (care citeste tot
+// cu metode UTC). Amestecarea celor doua (construit UTC, citit local, sau
+// invers) e exact ce provoca alunecarea datei cu o zi, in functie de fusul
+// orar al calculatorului care ruleaza importul.
 export function parseExcelDate(value) {
-  if (value instanceof Date && !isNaN(value)) return value
+  if (value instanceof Date && !isNaN(value)) {
+    // xlsx (cu cellDates:true) construieste Date-ul ancorat UTC pentru ziua
+    // din Excel - il pastram ca atare (fara nicio conversie de fus orar)
+    return value
+  }
   if (typeof value === 'number') {
     const utcDays = Math.floor(value - 25569) // 25569 = zile intre 1899-12-30 si 1970-01-01
     return new Date(utcDays * 86400 * 1000)
@@ -59,28 +70,32 @@ export function parseExcelDate(value) {
   if (typeof value === 'string') {
     const trimmed = value.trim()
     const dmy = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/)
-    if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]))
+    if (dmy) return new Date(Date.UTC(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1])))
     const iso = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
-    if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]))
+    if (iso) return new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])))
   }
   return null
 }
 
-// converteste o data JS in text "AAAA-LL-ZZ" (formatul folosit in Supabase),
-// fara sa treaca prin fus orar (evita ca o data sa "alunece" cu o zi)
+// converteste o data JS (ancorata UTC, vezi mai sus) in text "AAAA-LL-ZZ"
+// (formatul folosit in Supabase) - cu metode UTC, nu locale, ca sa
+// corespunda exact cu cum a fost construita data, indiferent de fusul orar
+// al calculatorului care ruleaza importul
 export function dateToISO(date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
+  const y = date.getUTCFullYear()
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(date.getUTCDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
 
 // ora poate fi obiect Date (cu ora/minut relevante), fractiune de zi (Excel
-// stocheaza orele tot ca numar, ex: 0.375 = 09:00), sau text "HH:MM"
+// stocheaza orele tot ca numar, ex: 0.375 = 09:00), sau text "HH:MM". La fel
+// ca la data, citim ora tot cu metode UTC, consecvent cu modul in care xlsx
+// construieste obiectul Date pentru o celula de tip ora.
 export function parseExcelTime(value) {
   if (value instanceof Date && !isNaN(value)) {
-    const h = String(value.getHours()).padStart(2, '0')
-    const m = String(value.getMinutes()).padStart(2, '0')
+    const h = String(value.getUTCHours()).padStart(2, '0')
+    const m = String(value.getUTCMinutes()).padStart(2, '0')
     return `${h}:${m}`
   }
   if (typeof value === 'number') {
