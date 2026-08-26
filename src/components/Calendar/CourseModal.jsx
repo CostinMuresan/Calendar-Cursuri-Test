@@ -263,7 +263,10 @@ export default function CourseModal({ initialDate, course, onClose, onSaved }) {
   }
 
   async function findFieldConflict(field, value) {
-    if (!value || value === 'TBD') return null
+    // "Online" nu e o sala fizica - la fel ca "TBD", nu se verifica
+    // conflict pentru ea (dar doar la campul "room" - la trainer/responsabil
+    // "Online" ar fi un nume normal, fara sens special)
+    if (!value || value === 'TBD' || (field === 'room' && value === 'Online')) return null
 
     let query = supabase
       .from('courses')

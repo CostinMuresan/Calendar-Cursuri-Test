@@ -525,7 +525,8 @@ function ImportCoursesPanel() {
   }
 
   async function findConflict(field, value, startDate, endDate) {
-    if (!value || value === 'TBD') return null
+    // "Online" nu e o sala fizica - la fel ca "TBD", exclusa din verificare
+    if (!value || value === 'TBD' || (field === 'room' && value === 'Online')) return null
     const { data, error } = await supabase
       .from('courses')
       .select('id, name, start_date, end_date')
