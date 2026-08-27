@@ -119,8 +119,10 @@ export default function TbdAlertModal({ profile, refreshKey, onEditCourse }) {
           <button className="icon-btn" onClick={() => setDismissed(true)}>✕</button>
         </div>
         <p className="admin-hint">
-          {pendingCourses.length === 1 ? 'Acest curs începe' : `Aceste ${pendingCourses.length} cursuri încep`} în
-          {' '}următoarele {profile?.notify_days_ahead || 7} zile, dar {pendingCourses.length === 1 ? 'încă are' : 'încă au'}
+          {pendingCourses.length === 1
+            ? 'Acest curs începe în curând sau e deja în desfășurare'
+            : `Aceste ${pendingCourses.length} cursuri încep în curând sau sunt deja în desfășurare`}
+          {' '}(în următoarele {profile?.notify_days_ahead || 7} zile), dar {pendingCourses.length === 1 ? 'încă are' : 'încă au'}
           {' '}atribute nedecise (TBD). Click pe un curs ca să-l editezi direct.
         </p>
         <div className="day-detail-list">
@@ -131,7 +133,10 @@ export default function TbdAlertModal({ profile, refreshKey, onEditCourse }) {
               onClick={() => handleCourseClick(c)}
             >
               <div className="day-detail-item-title">
-                <strong>{format(new Date(c.start_date), 'd MMM', { locale: ro })}</strong> {c.name}
+                <strong>
+                  {format(new Date(c.start_date), 'd MMM', { locale: ro })}
+                  {c.end_date !== c.start_date && ` → ${format(new Date(c.end_date), 'd MMM', { locale: ro })}`}
+                </strong> {c.name}
               </div>
               <div className="day-detail-item-sub">
                 Lipsesc: <strong>{missingLabels(c).join(', ')}</strong>
