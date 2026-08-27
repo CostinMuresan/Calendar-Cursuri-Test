@@ -17,6 +17,7 @@ const FORM_FIELDS = [
   'name', 'course_type', 'start_date', 'end_date', 'start_time', 'end_time',
   'trainers', 'room', 'participants_group', 'participants_count',
   'responsible', 'invite_mail', 'catering', 'notes', 'course_area', 'target_audience',
+  'cancelled',
 ]
 
 // sala/tip curs/responsabil sunt obligatorii; cursurile mai vechi, salvate
@@ -32,6 +33,7 @@ function pickFormFields(source) {
   if (!result.room) result.room = 'TBD'
   if (!result.course_type) result.course_type = 'TBD'
   if (!result.responsible) result.responsible = 'TBD'
+  result.cancelled = Boolean(source.cancelled)
   return result
 }
 
@@ -52,6 +54,7 @@ const emptyForm = (startDate, defaultResponsible) => ({
   notes: '',
   course_area: '',
   target_audience: '',
+  cancelled: false,
 })
 
 // gaseste elementul din lista (traineri/sali/responsabili) a carui nume se
@@ -275,6 +278,7 @@ export default function CourseModal({ initialDate, course, onClose, onSaved }) {
       // gaseasca la fel de bine conflictul cu "Arad" deja existent in baza
       // de date, indiferent cum a fost scrisa valoarea in formular
       .ilike(field, value)
+      .eq('cancelled', false)
       .lte('start_date', form.end_date)
       .gte('end_date', form.start_date)
 
@@ -301,6 +305,7 @@ export default function CourseModal({ initialDate, course, onClose, onSaved }) {
       .from('courses')
       .select('id, name, start_date, end_date, start_time, end_time')
       .overlaps('trainers', real)
+      .eq('cancelled', false)
       .lte('start_date', form.end_date)
       .gte('end_date', form.start_date)
 
@@ -320,7 +325,7 @@ export default function CourseModal({ initialDate, course, onClose, onSaved }) {
   // Salveaza, nu dupa ce a completat tot restul formularului. Verificarea
   // definitiva, care chiar blocheaza salvarea, ramane cea din handleSubmit.
   useEffect(() => {
-    if (!canEdit || form.end_date < form.start_date) {
+    if (!canEdit || form.end_date < form.start_date || form.cancelled) {
       setConflictWarning('')
       return
     }
@@ -342,7 +347,7 @@ export default function CourseModal({ initialDate, course, onClose, onSaved }) {
     }, 500)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(form.trainers), form.room, form.start_date, form.end_date, form.start_time, form.end_time])
+  }, [JSON.stringify(form.trainers), form.room, form.start_date, form.end_date, form.start_time, form.end_time, form.cancelled])
 
   // "Ion popescu" / "ION POPESCU" / "ion POPESCU" -> "Ion Popescu" - fiecare
   // cuvant incepe cu majuscula, restul literelor mici. Aplicata doar la
@@ -410,20 +415,24 @@ export default function CourseModal({ initialDate, course, onClose, onSaved }) {
     try {
       const conflictMessages = []
 
-      const roomConflict = await findFieldConflict('room', roomName)
-      if (roomConflict) {
-        conflictMessages.push(
-          `Sala "${roomName}" este deja rezervata in aceasta perioada de cursul "${roomConflict.name}" ` +
-          `(${roomConflict.start_date} - ${roomConflict.end_date}${roomConflict.start_time ? `, ${roomConflict.start_time.slice(0, 5)}-${roomConflict.end_time?.slice(0, 5)}` : ''}).`
-        )
-      }
+      // curs anulat = nu mai ocupa sala/trainerul, deci nu mai are sens sa
+      // il verificam impotriva altor cursuri
+      if (!form.cancelled) {
+        const roomConflict = await findFieldConflict('room', roomName)
+        if (roomConflict) {
+          conflictMessages.push(
+            `Sala "${roomName}" este deja rezervata in aceasta perioada de cursul "${roomConflict.name}" ` +
+            `(${roomConflict.start_date} - ${roomConflict.end_date}${roomConflict.start_time ? `, ${roomConflict.start_time.slice(0, 5)}-${roomConflict.end_time?.slice(0, 5)}` : ''}).`
+          )
+        }
 
-      const trainerConflict = await findTrainersConflict(trainerNames)
-      if (trainerConflict) {
-        conflictMessages.push(
-          `Cel putin unul dintre trainerii "${trainerNames.join(', ')}" este deja programat in aceasta perioada la cursul "${trainerConflict.name}" ` +
-          `(${trainerConflict.start_date} - ${trainerConflict.end_date}${trainerConflict.start_time ? `, ${trainerConflict.start_time.slice(0, 5)}-${trainerConflict.end_time?.slice(0, 5)}` : ''}).`
-        )
+        const trainerConflict = await findTrainersConflict(trainerNames)
+        if (trainerConflict) {
+          conflictMessages.push(
+            `Cel putin unul dintre trainerii "${trainerNames.join(', ')}" este deja programat in aceasta perioada la cursul "${trainerConflict.name}" ` +
+            `(${trainerConflict.start_date} - ${trainerConflict.end_date}${trainerConflict.start_time ? `, ${trainerConflict.start_time.slice(0, 5)}-${trainerConflict.end_time?.slice(0, 5)}` : ''}).`
+          )
+        }
       }
 
       if (conflictMessages.length > 0) {
@@ -498,6 +507,18 @@ export default function CourseModal({ initialDate, course, onClose, onSaved }) {
             Denumire curs *
             <input required disabled={!canEdit} value={form.name} onChange={(e) => update('name', e.target.value)} />
           </label>
+
+          {isEditing && (
+            <label className="span-2 cancelled-toggle">
+              <input
+                type="checkbox"
+                disabled={!canEdit}
+                checked={form.cancelled}
+                onChange={(e) => update('cancelled', e.target.checked)}
+              />
+              Curs anulat — ramane vizibil in calendar (marcat distinct), dar elibereaza sala si trainerii pentru alte cursuri
+            </label>
+          )}
 
           <label>
             Data + ora start *

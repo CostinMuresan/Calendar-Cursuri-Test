@@ -38,7 +38,8 @@ export default function TbdAlertModal({ profile, refreshKey, onEditCourse }) {
     const queries = []
 
     // cursurile mele, cu trainer/sala inca nedecise - userul poate fi legat
-    // de mai multi responsabili deodata (responsible_names e o lista)
+    // de mai multi responsabili deodata (responsible_names e o lista).
+    // Cursurile ANULATE nu mai au sens sa fie semnalate - nu se mai tin.
     const myResponsibleNames = profile?.responsible_names || []
     if (myResponsibleNames.length > 0) {
       queries.push(
@@ -46,6 +47,7 @@ export default function TbdAlertModal({ profile, refreshKey, onEditCourse }) {
           .from('courses')
           .select('*')
           .in('responsible', myResponsibleNames)
+          .eq('cancelled', false)
           .gte('end_date', todayIso)
           .lte('start_date', untilIso)
           .or('trainers.cs.{TBD},room.eq.TBD')
@@ -55,12 +57,14 @@ export default function TbdAlertModal({ profile, refreshKey, onEditCourse }) {
     // cursuri fara responsabil stabilit - vizibile pentru orice user logat.
     // prinde atat valoarea literala "TBD", cat si cazul cand campul e gol/
     // null (cursuri introduse fara sa treaca prin formular, ex. import) -
-    // ambele inseamna "nimeni nu e responsabil inca".
+    // ambele inseamna "nimeni nu e responsabil inca". Exclude si aici
+    // cursurile anulate.
     queries.push(
       supabase
         .from('courses')
         .select('*')
         .or('responsible.eq.TBD,responsible.is.null,responsible.eq.')
+        .eq('cancelled', false)
         .gte('end_date', todayIso)
         .lte('start_date', untilIso)
     )

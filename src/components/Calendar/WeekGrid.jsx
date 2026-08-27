@@ -108,7 +108,7 @@ function CourseBar({ course, weekDays, barFields, colorPrefs, rowIndex, hoveredC
 
   return (
     <div
-      className={`week-course-bar ${isHighlighted ? 'week-course-bar-highlighted' : ''}`}
+      className={`week-course-bar ${isHighlighted ? 'week-course-bar-highlighted' : ''} ${style.cancelled ? 'week-course-bar-cancelled' : ''}`}
       style={{
         gridColumn: `${startIdx + 1} / ${endIdx + 2}`,
         gridRow: rowIndex + 2, // +2: randul 1 e antetul
@@ -129,6 +129,7 @@ function CourseBar({ course, weekDays, barFields, colorPrefs, rowIndex, hoveredC
         <span className="week-course-bar-name">{course.name}</span>
         {extraFieldsText && <span className="week-course-bar-extra"> — {extraFieldsText}</span>}
       </span>
+      {style.cancelled && <span className="cancelled-badge">ANULAT</span>}
       {style.unclarified && <span className="unclarified-badge">TBD</span>}
       {continuesToNext && <span className="week-course-bar-arrow" title="Continua saptamana urmatoare">▶</span>}
     </div>
@@ -271,7 +272,7 @@ export default function WeekGrid({
                   return (
                     <div
                       key={`${c.id}-${col.key}`}
-                      className={`week-attr-cell ${c.id === hoveredCourseId ? 'week-attr-cell-highlighted' : ''}`}
+                      className={`week-attr-cell ${c.id === hoveredCourseId ? 'week-attr-cell-highlighted' : ''} ${c.cancelled ? 'week-attr-cell-cancelled' : ''}`}
                       style={{ gridColumn: DAY_COLS + colIndex + 1, gridRow: rowIndex + 2 }}
                       title={value || undefined}
                       onClick={() => onCourseClick(c)}

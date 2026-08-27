@@ -247,6 +247,30 @@ input:focus, select:focus, textarea:focus {
   margin-left: 4px;
   flex-shrink: 0;
 }
+
+/* curs ANULAT - text taiat cu o linie (peste tot unde apare: chip lunar,
+   bara saptamanala, lista de detalii pe zi), plus o eticheta distincta.
+   Fundalul deja e gri neutru (vezi getBarStyle) - linia taiata + eticheta
+   sunt semnalele suplimentare ca acest curs nu se mai tine, dar a ramas
+   vizibil pentru istoric. */
+.cancelled-badge {
+  color: var(--danger);
+  font-weight: 700;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.course-chip-cancelled .course-chip-name,
+.week-course-bar-cancelled .week-course-bar-name,
+.week-attr-cell-cancelled,
+.day-detail-item-cancelled .day-detail-item-title,
+.report-row-cancelled td:first-child {
+  text-decoration: line-through;
+}
+.course-chip-cancelled,
+.week-course-bar-cancelled {
+  opacity: 0.85;
+}
+
 .legend-mode-select {
   display: flex;
   align-items: center;
@@ -482,6 +506,21 @@ input:focus, select:focus, textarea:focus {
   font-weight: 500;
   white-space: pre-line;
 }
+.cancelled-toggle {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  background: #fdecea;
+  color: var(--danger);
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cancelled-toggle input[type="checkbox"] { margin: 0; cursor: pointer; flex-shrink: 0; }
 .span-2 { grid-column: 1 / -1; }
 .span-2-of-3 { grid-column: span 2; }
 .datetime-row { display: flex; gap: 6px; }

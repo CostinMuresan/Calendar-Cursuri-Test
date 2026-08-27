@@ -25,7 +25,7 @@ export async function exportCoursesToXlsx(courses) {
 
   courses.forEach((c) => {
     const row = sheet.addRow([
-      c.name,
+      c.cancelled ? `${c.name} (ANULAT)` : c.name,
       c.course_type || '',
       c.start_date,
       c.end_date,
@@ -42,6 +42,15 @@ export async function exportCoursesToXlsx(courses) {
       c.catering || '',
       c.notes || '',
     ])
+
+    if (c.cancelled) {
+      // spre deosebire de PDF, Excel suporta strikethrough real - il aplicam
+      // pe tot randul, ca sa fie evident dintr-o privire ca nu se mai tine
+      row.eachCell((cell) => {
+        cell.font = { ...(cell.font || {}), strike: true, color: { argb: 'FF6C757D' } }
+      })
+      return
+    }
 
     // valorile TBD/neclarificate (tip, trainer, sala, responsabil) apar cu
     // rosu si bold, ca sa fie evident dintr-o privire ce mai e de rezolvat

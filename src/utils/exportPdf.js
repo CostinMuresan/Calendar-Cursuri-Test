@@ -28,7 +28,7 @@ export function exportCoursesToPdf(courses, { title = 'Raport cursuri', filtersL
   }
 
   const rows = courses.map((c) => [
-    c.name,
+    c.cancelled ? `${c.name} (ANULAT)` : c.name,
     c.course_type || '-',
     c.start_date,
     c.end_date,
@@ -48,13 +48,22 @@ export function exportCoursesToPdf(courses, { title = 'Raport cursuri', filtersL
     startY: filtersLabel ? 26 : 22,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [40, 60, 90] },
-    // valorile TBD/neclarificate (tip, trainer, sala, responsabil) apar cu
-    // rosu si bold, ca sa fie evident dintr-o privire ce mai e de rezolvat
     didParseCell: (data) => {
       if (data.section !== 'body') return
+      const course = courses[data.row.index]
+      // cursurile anulate apar gri/italic pe tot randul - jsPDF nu are
+      // stil "strikethrough" nativ pentru text in tabel, de-aia am adaugat
+      // si sufixul "(ANULAT)" in coloana Curs, mai sus
+      if (course.cancelled) {
+        data.cell.styles.textColor = [130, 130, 130]
+        data.cell.styles.fontStyle = 'italic'
+        return
+      }
+      // valorile TBD/neclarificate (tip, trainer, sala, responsabil) apar cu
+      // rosu si bold, ca sa fie evident dintr-o privire ce mai e de rezolvat
       const check = TBD_CHECKS[data.column.index]
       if (!check) return
-      if (check(courses[data.row.index])) {
+      if (check(course)) {
         data.cell.styles.textColor = [220, 53, 69]
         data.cell.styles.fontStyle = 'bold'
       }

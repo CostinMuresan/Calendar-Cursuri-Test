@@ -36,6 +36,7 @@ export default function ReportsPage() {
     targetAudience: '',
     search: '',
     onlyTbd: false,
+    hideCancelled: false,
   })
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -73,6 +74,7 @@ export default function ReportsPage() {
       targetAudience: '',
       search: '',
       onlyTbd: false,
+      hideCancelled: false,
     })
     // rezultatele afisate nu mai corespund filtrelor (acum goale) - le
     // ascundem, ca sa nu para ca lista de mai jos reflecta filtrele resetate
@@ -109,6 +111,7 @@ export default function ReportsPage() {
       // acelasi rationament ca la alerta de la logare
       query = query.or('trainers.cs.{TBD},room.eq.TBD,responsible.eq.TBD,responsible.is.null')
     }
+    if (filters.hideCancelled) query = query.eq('cancelled', false)
 
     const { data, error } = await query
     setLoading(false)
@@ -126,21 +129,27 @@ export default function ReportsPage() {
     if (filters.targetAudience) parts.push(`Public tinta: ${filters.targetAudience}`)
     if (filters.search) parts.push(`Cauta: "${filters.search}"`)
     if (filters.onlyTbd) parts.push('Doar neclarificate (TBD)')
+    if (filters.hideCancelled) parts.push('Fara cursuri anulate')
     return parts.join('  |  ')
   }
 
   // statisticile se calculeaza direct din rezultatele curente (acelasi
-  // filtru ca lista), fara interogari suplimentare
+  // filtru ca lista), fara interogari suplimentare. Cursurile ANULATE sunt
+  // excluse explicit din statistici (indiferent de filtrul "ascunde
+  // cursurile anulate" de mai sus, care afecteaza doar lista) - un curs
+  // anulat nu s-a mai tinut, n-ar trebui sa umfle cifrele de incarcare/
+  // ocupare/participanti.
   const stats = useMemo(() => {
     if (!results) return null
+    const activeResults = results.filter((c) => !c.cancelled)
     return {
-      totalCourses: results.length,
-      trainerLoad: trainerLoadReport(results),
-      roomOccupancy: roomOccupancyReport(results),
-      responsibleLoad: responsibleLoadReport(results),
-      categoryMix: categoryMixReport(results),
-      courseTypeMix: courseTypeMixReport(results),
-      totalParticipants: totalParticipants(results),
+      totalCourses: activeResults.length,
+      trainerLoad: trainerLoadReport(activeResults),
+      roomOccupancy: roomOccupancyReport(activeResults),
+      responsibleLoad: responsibleLoadReport(activeResults),
+      categoryMix: categoryMixReport(activeResults),
+      courseTypeMix: courseTypeMixReport(activeResults),
+      totalParticipants: totalParticipants(activeResults),
       periodDays: periodDays(filters.startDate, filters.endDate),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,6 +230,14 @@ export default function ReportsPage() {
           />
           Doar neclarificate (TBD)
         </label>
+        <label className="settings-checkbox-row">
+          <input
+            type="checkbox"
+            checked={filters.hideCancelled}
+            onChange={(e) => updateFilter('hideCancelled', e.target.checked)}
+          />
+          Ascunde cursurile anulate
+        </label>
         <button type="submit" disabled={loading}>{loading ? 'Se cauta...' : 'Cauta'}</button>
         <button type="button" className="secondary-btn" onClick={resetFilters} disabled={loading}>
           Reseteaza filtre
@@ -298,8 +315,11 @@ export default function ReportsPage() {
                   const tbd = (v) => (!v || v === 'TBD' ? 'report-tbd-cell' : undefined)
                   const trainersMissing = !c.trainers || c.trainers.length === 0 || c.trainers.includes('TBD')
                   return (
-                    <tr key={c.id}>
-                      <td>{c.name}</td>
+                    <tr key={c.id} className={c.cancelled ? 'report-row-cancelled' : undefined}>
+                      <td>
+                        {c.name}
+                        {c.cancelled && <span className="cancelled-badge">ANULAT</span>}
+                      </td>
                       <td className={tbd(c.course_type)}>{c.course_type}</td>
                       <td>{c.start_date}</td>
                       <td>{c.end_date}</td>
@@ -414,6 +434,7 @@ function StatsView({ stats }) {
   if (!stats) return null
   return (
     <div className="reports-stats">
+      <p className="admin-hint">Cursurile anulate sunt excluse din toate cifrele de mai jos.</p>
       <div className="stats-summary-row">
         <div className="stats-summary-card">
           <div className="stats-summary-value">{stats.totalCourses}</div>

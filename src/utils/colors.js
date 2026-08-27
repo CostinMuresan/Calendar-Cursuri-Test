@@ -76,6 +76,13 @@ export function colorKeyFor(mode, value) {
 export function getBarStyle(course, prefs = {}) {
   const { colorMode = 'duration', customColors = {} } = prefs
 
+  // curs anulat: gri neutru, indiferent de modul de colorare ales - starea
+  // "anulat" conteaza mai mult decat durata/responsabilul/categoria.
+  // Componentele de randare adauga o eticheta si o linie taiata pe text.
+  if (course.cancelled) {
+    return { bg: '#e9ecef', border: '#adb5bd', text: '#6c757d', unclarified: false, cancelled: true }
+  }
+
   if (colorMode === 'responsible') {
     if (course.responsible && course.responsible !== 'TBD') {
       const key = colorKeyFor('responsible', course.responsible)

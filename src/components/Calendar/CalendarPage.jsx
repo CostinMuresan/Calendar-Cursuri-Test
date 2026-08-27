@@ -445,6 +445,9 @@ export default function CalendarPage() {
       {hoverInfo && (
         <div className="course-hover-popover" style={{ top: hoverInfo.top, left: hoverInfo.left }}>
           <div className="popover-title">{hoverInfo.course.name}</div>
+          {hoverInfo.course.cancelled && (
+            <div className="popover-row"><span className="cancelled-badge">ANULAT</span></div>
+          )}
           <div className="popover-row">
             <strong>Perioada:</strong> {hoverInfo.course.start_date} → {hoverInfo.course.end_date}
           </div>
@@ -487,7 +490,7 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={c.id}
-                    className="day-detail-item"
+                    className={`day-detail-item ${style.cancelled ? 'day-detail-item-cancelled' : ''}`}
                     style={{ borderLeft: `4px solid ${style.border}` }}
                     onClick={() => {
                       setDayDetail(null)
@@ -496,6 +499,7 @@ export default function CalendarPage() {
                   >
                     <div className="day-detail-item-title" style={style.unclarified ? { color: style.text } : undefined}>
                       <strong>{c.start_time?.slice(0, 5) || ''}</strong> {c.name}
+                      {style.cancelled && <span className="cancelled-badge">ANULAT</span>}
                       {style.unclarified && <span className="unclarified-badge">TBD</span>}
                     </div>
                     <div className="day-detail-item-sub">
